@@ -1,0 +1,46 @@
+RealForge DLSS 5
+================
+
+Rendu neuronal DLSS 5 (NVIDIA + add-on RenoDX DLSS5) pour vos images et vos vidéos,
+avec une interface web locale.
+
+DÉMARRER
+  Double-cliquez sur start.bat. Tout le reste est automatique :
+   - Python portable est téléchargé s'il n'est pas installé (dossier python\)
+   - ffmpeg est téléchargé s'il n'est pas installé (dossier ffmpeg\), pour les vidéos
+   - si l'indicateur DLSS de NVIDIA est activé dans Windows (texte incrusté sur les rendus),
+     start.bat propose de le désactiver (autorisation administrateur)
+   - le moteur est compilé au premier lancement (et recompilé s'il est mis à jour)
+  Seul prérequis manuel : le compilateur C++ de Microsoft, une seule fois :
+     winget install Microsoft.VisualStudio.2022.BuildTools --override "--wait --passive --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended"
+
+FICHIERS DLSS 5
+  Pris automatiquement dans le dossier parent (F:\02) : dxgi.dll (ReShade),
+  renodx-dlss5.addon64, nvngx_dlssnr.dll et nvngx_dlss.dll. Ils sont liés dans engine\
+  sans copie. Modifiable dans Diagnostic.
+
+COMMENT ÇA MARCHE
+  Le moteur (src\realforge_engine.cpp) fait passer chaque image dans NVIDIA DLSS exactement
+  comme une frame de jeu : l'image est convertie en lumière linéaire HDR (FP16), DLSS l'évalue,
+  et l'add-on RenoDX y applique le Neural Rendering DLSS 5. Le résultat est reconverti en sRGB.
+  Après chaque rendu, RealForge lit ReShade.log : si le Neural Rendering ne s'est pas réellement
+  appliqué, le rendu est marqué en erreur avec la cause (jamais une image non traitée présentée
+  comme un rendu).
+
+STYLES
+  Natural     réalisme photo neutre (recommandé pour commencer)
+  Cinematic   look film
+  Réalisme+   peau, cheveux, tissus plus détaillés
+  Ultra       tout à 2 : effet maximal, peut exagérer
+  Personnalisé : NR Intensity, Local Tone, Local Structure, Local Skin (0 à 2)
+  « Dosage de l'effet » mélange le rendu avec l'original si l'effet est trop fort.
+
+BONS RÉGLAGES
+  - 1 passe NR (plusieurs passes empilées surchargent l'image : peau vieillie, image sombre).
+  - Résolution 1× (DLAA). Taille de travail 4K max : au-delà le Neural Rendering refuse
+    de démarrer, l'image est donc réduite automatiquement.
+  - Entrée « Linéaire HDR » (par défaut). « sRGB » reste disponible pour comparer.
+
+DOSSIERS
+  engine\   moteur + liens vers vos DLL + ReShade.ini + journaux
+  work\     vos rendus (un dossier par fichier : input, result, job.json)

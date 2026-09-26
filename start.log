@@ -1,0 +1,5 @@
+[26/09/2026 17:09:44,96] Demarrage de RealForge DLSS 5 depuis F:\02\RealForge-DLSS5\
+[17:09:45,03] Python : py -3
+[17:09:45,09] ffmpeg : OK
+[17:09:45,38] moteur : OK
+[17:09:45,38] lancement du serveur : py -3 server.py

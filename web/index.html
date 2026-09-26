@@ -1,0 +1,416 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RealForge DLSS 5</title>
+<style>
+:root{
+  --bg:#07090b; --bg2:#0c1014; --glass:rgba(255,255,255,.035); --glass2:rgba(255,255,255,.06);
+  --line:rgba(255,255,255,.08); --line2:rgba(255,255,255,.14);
+  --text:#eef2f5; --muted:#8a96a3; --dim:#5d6873;
+  --g1:#76b900; --g2:#b6ff3b; --c1:#27e0c8; --warn:#ffb547; --err:#ff5d6c;
+  --r:16px; --mono:ui-monospace,"Cascadia Code",Consolas,monospace;
+}
+*{box-sizing:border-box;margin:0}
+html,body{background:var(--bg);color:var(--text);font:14px/1.5 "Segoe UI Variable Text","Segoe UI",Inter,system-ui,sans-serif;min-height:100%}
+body{background:
+  radial-gradient(900px 500px at 12% -10%,rgba(118,185,0,.16),transparent 60%),
+  radial-gradient(800px 500px at 100% 0%,rgba(39,224,200,.10),transparent 60%),var(--bg);background-attachment:fixed}
+button,input,select{font:inherit;color:inherit}
+.wrap{max-width:1640px;margin:0 auto;padding:0 28px 40px}
+
+/* ---------- header ---------- */
+header{display:flex;align-items:center;gap:18px;padding:18px 0 22px}
+.brand{display:flex;align-items:center;gap:14px}
+.mark{width:44px;height:44px;border-radius:13px;display:grid;place-items:center;
+  background:linear-gradient(135deg,var(--g1),var(--c1));box-shadow:0 8px 30px rgba(118,185,0,.35)}
+.mark svg{width:26px;height:26px}
+.name{font-size:22px;font-weight:750;letter-spacing:-.3px;line-height:1.1}
+.name .d5{background:linear-gradient(90deg,var(--g2),var(--c1));-webkit-background-clip:text;background-clip:text;color:transparent}
+.tag{font-size:12px;color:var(--muted);letter-spacing:.2px}
+.status{margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.chip{display:flex;align-items:center;gap:7px;padding:6px 12px;border-radius:99px;background:var(--glass);border:1px solid var(--line);font-size:12.5px;color:var(--muted)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--dim)}
+.dot.ok{background:var(--g2);box-shadow:0 0 10px var(--g1)} .dot.bad{background:var(--err)} .dot.warn{background:var(--warn)}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:11px;border:1px solid var(--line2);background:var(--glass2);cursor:pointer;transition:.15s;text-decoration:none;color:var(--text);font-size:13px}
+.btn:hover{background:rgba(255,255,255,.1)}
+.btn.ghost{background:transparent;border-color:var(--line)}
+.btn.sm{padding:5px 10px;font-size:12px;border-radius:9px}
+.btn.go{border:0;padding:15px 20px;border-radius:14px;width:100%;justify-content:center;font-size:15.5px;font-weight:700;color:#061003;
+  background:linear-gradient(90deg,var(--g1),var(--g2) 55%,var(--c1));box-shadow:0 10px 34px rgba(118,185,0,.3)}
+.btn.go:hover{filter:brightness(1.08)}
+.btn.go:disabled{filter:grayscale(1) brightness(.6);cursor:not-allowed;box-shadow:none}
+
+.alert{display:none;margin-bottom:18px;padding:12px 16px;border-radius:14px;background:rgba(255,181,71,.08);border:1px solid rgba(255,181,71,.3);color:#ffdca8;font-size:13px}
+.alert.on{display:block}
+.alert div+div{margin-top:6px}
+
+/* ---------- layout ---------- */
+.grid{display:grid;grid-template-columns:400px 1fr;gap:22px;align-items:start}
+@media(max-width:1060px){.grid{grid-template-columns:1fr}}
+.grid>*{min-width:0}
+.row>label.sw2{flex:none}
+@media(max-width:640px){.wrap{padding:0 16px 30px}header{flex-wrap:wrap}.status{margin-left:0}.presets{grid-template-columns:1fr}.stage{min-height:360px;height:60vh}.vids{grid-template-columns:1fr}.mark{flex:none}}
+.panel{background:var(--glass);border:1px solid var(--line);border-radius:var(--r);padding:18px;backdrop-filter:blur(12px)}
+.panel+.panel{margin-top:18px}
+.ph{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.ph h2{font-size:12px;font-weight:650;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted)}
+.ph .n{width:22px;height:22px;border-radius:7px;display:grid;place-items:center;font-size:12px;font-weight:700;background:var(--glass2);color:var(--g2)}
+.ph .sp{margin-left:auto}
+
+/* drop */
+#drop{border:1.5px dashed rgba(255,255,255,.16);border-radius:14px;padding:26px 16px;text-align:center;cursor:pointer;transition:.2s;background:rgba(0,0,0,.18)}
+#drop:hover,#drop.over{border-color:var(--g1);background:rgba(118,185,0,.07)}
+#drop b{display:block;font-size:15px;margin:10px 0 3px}
+#drop span{color:var(--muted);font-size:12px}
+.files{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.file{display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:10px;background:rgba(255,255,255,.04);font-size:13px}
+.file .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kind{font-size:10.5px;font-weight:700;letter-spacing:.6px;padding:2px 7px;border-radius:6px;background:rgba(255,255,255,.06);color:var(--muted);text-transform:uppercase}
+.kind.video{color:#8fd0ff} .kind.image{color:var(--g2)}
+.bar{height:4px;border-radius:4px;background:rgba(255,255,255,.07);overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--g1),var(--c1));transition:width .35s}
+
+.sliders{display:none;margin-top:12px;padding:12px;border-radius:12px;background:rgba(0,0,0,.25);border:1px solid var(--line)}
+.sliders.on{display:block}
+.row{display:flex;align-items:center;gap:12px;margin:10px 0}
+.row>label{flex:1;min-width:0;font-size:13px}
+.row>label small{display:block;color:var(--muted);font-size:11.5px}
+.val{font-family:var(--mono);font-size:12px;color:var(--g2);width:42px;text-align:right}
+input[type=range]{-webkit-appearance:none;appearance:none;width:130px;height:4px;border-radius:4px;background:rgba(255,255,255,.12);outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:#fff;border:3px solid var(--g1);cursor:pointer}
+input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;background:#fff;border:3px solid var(--g1);cursor:pointer}
+select,input[type=number],input[type=text]{background:rgba(0,0,0,.35);border:1px solid var(--line2);border-radius:9px;padding:6px 9px;outline:none}
+input[type=number]{width:84px}
+.seg{display:flex;padding:3px;border-radius:11px;background:rgba(0,0,0,.35);border:1px solid var(--line)}
+.seg button{border:0;background:transparent;padding:5px 11px;border-radius:8px;cursor:pointer;color:var(--muted);font-size:12.5px}
+.seg button.on{background:rgba(255,255,255,.1);color:var(--text);font-weight:600}
+.sw2{position:relative;width:40px;height:22px;flex:none}
+.sw2 input{opacity:0;width:0;height:0}
+.sw2 span{position:absolute;inset:0;border-radius:99px;background:rgba(255,255,255,.14);transition:.2s;cursor:pointer}
+.sw2 span:before{content:"";position:absolute;width:16px;height:16px;left:3px;top:3px;border-radius:50%;background:#fff;transition:.2s}
+.sw2 input:checked+span{background:var(--g1)}
+.sw2 input:checked+span:before{transform:translateX(18px)}
+details{margin-top:12px;border-top:1px solid var(--line);padding-top:10px}
+summary{cursor:pointer;list-style:none;color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:1px;display:flex;align-items:center;gap:8px}
+summary::-webkit-details-marker{display:none}
+summary:before{content:"›";font-size:16px;transition:.2s}
+details[open] summary:before{transform:rotate(90deg)}
+
+/* viewer */
+.viewer{padding:0;overflow:hidden}
+.vbar{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.vbar .t{font-weight:650;flex:1;min-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.stage{position:relative;min-height:520px;height:calc(100vh - 330px);max-height:900px;display:flex;align-items:center;justify-content:center;
+  background:repeating-conic-gradient(#0b0e11 0 25%,#090c0e 0 50%) 0 0/24px 24px}
+.empty{color:var(--muted);text-align:center;max-width:420px;padding:30px}
+.empty .big{font-size:40px;opacity:.5;margin-bottom:8px}
+.cmp{position:relative;height:100%;max-width:100%;user-select:none;touch-action:none;cursor:ew-resize}
+.cmp img{display:block;height:100%;max-width:100%;object-fit:contain}
+.cmp .after{position:absolute;inset:0;clip-path:inset(0 0 0 50%)}
+.cmp .after img{width:100%;height:100%;object-fit:fill}
+.cmp .hd{position:absolute;top:0;bottom:0;left:50%;width:2px;background:linear-gradient(var(--g2),var(--c1));box-shadow:0 0 16px rgba(118,185,0,.7)}
+.cmp .hd:after{content:"";position:absolute;top:50%;left:50%;width:34px;height:34px;transform:translate(-50%,-50%);border-radius:50%;
+  background:#0b0e10 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23b6ff3b' stroke-width='2.2'%3E%3Cpath d='M9 6l-5 6 5 6M15 6l5 6-5 6'/%3E%3C/svg%3E") center/18px no-repeat;border:2px solid var(--g2)}
+.lbl{position:absolute;top:14px;padding:4px 10px;border-radius:8px;background:rgba(0,0,0,.6);backdrop-filter:blur(6px);font-size:12px;font-weight:600}
+.lbl.l{left:14px} .lbl.r{right:14px;color:var(--g2)}
+.vids{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%;height:100%;padding:12px}
+.vids>div{display:flex;flex-direction:column;min-height:0}
+.vids video{flex:1;min-height:0;width:100%;border-radius:12px;background:#000}
+.vids .cap{font-size:12px;color:var(--muted);margin-bottom:6px}
+.overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:rgba(5,7,9,.55);backdrop-filter:blur(3px)}
+.ring{width:64px;height:64px;border-radius:50%;background:conic-gradient(var(--g2) var(--p,0%),rgba(255,255,255,.08) 0);display:grid;place-items:center}
+.ring:before{content:"";width:52px;height:52px;border-radius:50%;background:var(--bg2)}
+.logbox{max-height:220px;overflow:auto;margin:0;padding:12px 16px;border-top:1px solid var(--line);font:11.5px/1.5 var(--mono);color:#9aa6b2;white-space:pre-wrap;background:rgba(0,0,0,.3);display:none}
+.logbox.on{display:block}
+
+/* queue */
+.queue{display:flex;gap:10px;overflow-x:auto;padding:14px 16px;border-top:1px solid var(--line)}
+.qi{flex:none;width:188px;border-radius:12px;background:rgba(255,255,255,.03);border:1px solid var(--line);cursor:pointer;overflow:hidden;transition:.15s}
+.qi:hover{border-color:var(--line2)}
+.qi.sel{border-color:var(--g1);box-shadow:0 0 0 1px var(--g1)}
+.qi .th{height:96px;background:#0b0e10 center/cover;display:grid;place-items:center;color:var(--muted);font-size:22px}
+.qi .in{padding:8px 10px}
+.qi .nm{font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.qi .st{font-size:11px;color:var(--muted);margin:2px 0 5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.qi.done .st{color:var(--g2)} .qi.error .st{color:var(--err)}
+.qi .x{float:right;border:0;background:none;color:var(--dim);cursor:pointer;font-size:14px;line-height:1}
+.qi .x:hover{color:var(--text)}
+
+/* modal */
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;z-index:30;padding:18px}
+.modal.on{display:flex}
+.modal .box{background:var(--bg2);border:1px solid var(--line2);border-radius:18px;max-width:880px;width:100%;max-height:88vh;overflow:auto;padding:22px}
+.ftab{width:100%;border-collapse:collapse;font-size:13px;margin:10px 0}
+.ftab td{padding:8px 6px;border-bottom:1px solid var(--line);vertical-align:top}
+.ftab .p{font:11.5px var(--mono);color:var(--muted);word-break:break-all}
+pre.code{background:rgba(0,0,0,.4);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font:11.5px/1.5 var(--mono);color:#aeb8c2;white-space:pre-wrap;max-height:260px;overflow:auto}
+code{font-family:var(--mono);background:rgba(255,255,255,.07);padding:1px 5px;border-radius:5px}
+.note{color:var(--muted);font-size:12px}
+.notes{padding:10px 16px;border-top:1px solid var(--line);color:var(--warn);font-size:12.5px;display:none}
+.notes.on{display:block}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="brand">
+    <div class="mark"><svg viewBox="0 0 24 24" fill="none" stroke="#061003" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l8.5 5v10L12 22l-8.5-5V7z"/><path d="M12 7.5l4 2.3v4.4l-4 2.3-4-2.3V9.8z" fill="#061003"/></svg></div>
+    <div>
+      <div class="name">RealForge <span class="d5">DLSS 5</span></div>
+      <div class="tag">Rendu neuronal réaliste pour vos images et vidéos</div>
+    </div>
+  </div>
+  <div class="status">
+    <span class="chip"><i class="dot" id="st-engine"></i>Moteur</span>
+    <span class="chip"><i class="dot" id="st-dll"></i>DLSS 5</span>
+    <span class="chip"><i class="dot" id="st-ff"></i>Vidéo</span>
+    <button class="btn sm" id="btn-diag">Diagnostic</button>
+    <button class="btn sm ghost" id="btn-work">Mes rendus</button>
+  </div>
+</header>
+
+<div class="alert" id="alert"></div>
+
+<div class="grid">
+  <aside>
+    <section class="panel">
+      <div class="ph"><span class="n">1</span><h2>Importer</h2></div>
+      <div id="drop">
+        <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="url(#gg)" stroke-width="1.7" stroke-linecap="round"><defs><linearGradient id="gg" x1="0" x2="1"><stop stop-color="#76b900"/><stop offset="1" stop-color="#27e0c8"/></linearGradient></defs><path d="M12 15V3m0 0L7.5 7.5M12 3l4.5 4.5"/><path d="M3 15v3a3 3 0 0 0 3 3h12a3 3 0 0 0 3-3v-3"/></svg>
+        <b>Déposez vos images ou vidéos</b>
+        <span>ou cliquez pour parcourir · PNG, JPG, WebP, TIFF · MP4, MOV, MKV, WebM</span>
+        <input type="file" id="file" multiple hidden accept="image/*,video/*,.mkv,.mov,.ts,.mts">
+      </div>
+      <div class="files" id="files"></div>
+    </section>
+
+    <section class="panel">
+      <div class="ph"><span class="n">2</span><h2>Réglages DLSS 5</h2></div>
+      <div class="sliders on" id="sliders" style="margin-top:0">
+        <div class="row" style="margin-top:0"><label>Qualité du 1er rendu<small>remet exactement les réglages de votre premier rendu réussi : tout à 1, peau à 0, 1 passe, 1×, entrée Linéaire HDR, 4K</small></label><button class="btn sm" id="btn-ref" type="button" style="border-color:var(--g1);color:var(--g2)">Appliquer</button></div>
+        <div class="row"><label>NR Intensity<small>force globale</small></label><input type="range" id="c-intensity" min="0" max="2" step="0.05" value="1"><span class="val" id="v-intensity"></span></div>
+        <div class="row"><label>Local Tone<small>lumière zone par zone</small></label><input type="range" id="c-tone" min="0" max="2" step="0.05" value="1"><span class="val" id="v-tone"></span></div>
+        <div class="row"><label>Local Structure<small>cheveux, tissus, objets, décors</small></label><input type="range" id="c-structure" min="0" max="2" step="0.05" value="1"><span class="val" id="v-structure"></span></div>
+        <div class="row"><label>Local Skin<small>texture de la peau : 0 = référence, plus = plus détaillée</small></label><input type="range" id="c-skin" min="0" max="2" step="0.05" value="0"><span class="val" id="v-skin"></span></div>
+        <div class="row"><label>Détection des personnages</label><label class="sw2"><input type="checkbox" id="c-mask" checked><span></span></label></div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="ph"><span class="n">3</span><h2>Sortie</h2></div>
+      <div class="row"><label>Résolution<small>1× = même taille (DLAA)</small></label><div class="seg" id="o-scale"><button data-v="1" class="on">1×</button><button data-v="1.5">1,5×</button><button data-v="2">2×</button><button data-v="3">3×</button></div></div>
+      <div class="row"><label>Taille de travail max<small>au-delà, l'image est réduite</small></label>
+        <select id="o-maxpx"><option value="2073600">1080p</option><option value="3686400">1440p</option><option value="8294400">4K</option><option value="33177600" selected>8K</option></select></div>
+      <details id="d-video">
+        <summary>Vidéo</summary>
+        <div class="row"><label>Début (s)</label><input type="number" id="o-start" min="0" step="0.5" value="0"></div>
+        <div class="row"><label>Durée max (s)<small>0 = toute la vidéo</small></label><input type="number" id="o-max" min="0" step="1" value="0"></div>
+        <div class="row"><label>Format</label><select id="o-codec"><option value="h264">MP4 H.264</option><option value="h265">MP4 H.265</option><option value="nvenc">MP4 NVENC (rapide)</option><option value="prores">MOV ProRes 4444 XQ</option></select></div>
+        <div class="row"><label>Qualité<small>plus bas = meilleur</small></label><input type="number" id="o-crf" min="0" max="40" value="16"></div>
+        <div class="row"><label>Anti-traînées<small>réinitialise l'historique à chaque image</small></label><label class="sw2"><input type="checkbox" id="o-reset"><span></span></label></div>
+      </details>
+      <details>
+        <summary>Avancé</summary>
+        <div class="row"><label>Entrée couleur<small>Linéaire = comme un jeu (recommandé)</small></label><div class="seg" id="o-color"><button data-v="linear" class="on">Linéaire HDR</button><button data-v="sdr">sRGB</button></div></div>
+        <div class="row"><label>Passes NR<small>1 à 4 · chaque passe renforce l'effet</small></label><select id="o-passes"><option selected>1</option><option>2</option><option>3</option><option>4</option></select></div>
+        <div class="row"><label>Warm-up<small>évaluations avant la capture</small></label><input type="number" id="o-warm" min="4" max="64" value="12"></div>
+        <div class="row"><label>Neural Rendering<small>off = DLSS seul, pour comparer</small></label><label class="sw2"><input type="checkbox" id="o-nr" checked><span></span></label></div>
+        <div class="row"><label>Fenêtre d'aperçu du moteur</label><label class="sw2"><input type="checkbox" id="o-win" checked><span></span></label></div>
+      </details>
+    </section>
+
+    <div style="margin-top:18px"><button class="btn go" id="btn-go" disabled>Lancer le rendu DLSS 5</button></div>
+  </aside>
+
+  <main>
+    <section class="panel viewer">
+      <div class="vbar">
+        <span class="t" id="v-title">Aperçu</span>
+        <a class="btn sm" id="v-dl" style="display:none">Télécharger</a>
+        <button class="btn sm ghost" id="v-open" style="display:none">Ouvrir le dossier</button>
+        <button class="btn sm ghost" id="v-log" style="display:none">Journal</button>
+      </div>
+      <div class="stage" id="stage"><div class="empty"><div class="big">◐</div>Importez un fichier et lancez le rendu : la comparaison avant / après s'affichera ici.</div></div>
+      <div class="notes" id="notes"></div>
+      <pre class="logbox" id="logbox"></pre>
+      <div class="queue" id="queue"></div>
+    </section>
+  </main>
+</div>
+</div>
+
+<div class="modal" id="modal"><div class="box">
+  <div style="display:flex;align-items:center;margin-bottom:6px"><h3 style="flex:1">Diagnostic</h3><button class="btn sm" id="m-close">Fermer</button></div>
+  <div id="m-body" class="note">…</div>
+</div></div>
+
+<script>
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const post=(u,b)=>fetch(u,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(b||{})}).then(r=>r.json());
+let pending=[], jobs=[], selected=null, showLog=false, viewKey="", syncTimer=null, preset="custom";
+
+/* ---------- réglages ---------- */
+const segVal=id=>$(`#${id} .on`).dataset.v;
+$$(".seg").forEach(seg=>seg.addEventListener("click",e=>{const b=e.target.closest("button"); if(!b)return; seg.querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b)); save();}));
+
+const vals=[["intensity",2],["tone",2],["structure",2],["skin",2]];
+function sync(){ vals.forEach(([k])=>$("#v-"+k).textContent=(+$("#c-"+k).value).toFixed(2)); }
+$$("input,select").forEach(e=>e.addEventListener("input",()=>{sync();save();}));
+function settings(){
+  return { preset, nr:$("#o-nr").checked, color:segVal("o-color"), scale:+segVal("o-scale"), mix:1,
+    max_pixels:+$("#o-maxpx").value, passes:+$("#o-passes").value, warmup:+$("#o-warm").value||12, preview_window:$("#o-win").checked,
+    style:1, intensity:+$("#c-intensity").value, tone:+$("#c-tone").value, structure:+$("#c-structure").value,
+    skin:+$("#c-skin").value, mask:$("#c-mask").checked?1:0,
+    start_seconds:+$("#o-start").value||0, max_seconds:+$("#o-max").value||0, codec:$("#o-codec").value, crf:+$("#o-crf").value||16,
+    reset_each:$("#o-reset").checked };
+}
+const KEY="realforge-v8";
+function save(){ try{ const o={preset}; $$("input,select").forEach(e=>{ if(e.id&&e.type!=="file") o[e.id]=e.type==="checkbox"?e.checked:e.value; }); $$(".seg").forEach(s=>o[s.id]=segVal(s.id)); localStorage.setItem(KEY,JSON.stringify(o)); }catch(e){} }
+function load(){ try{ const o=JSON.parse(localStorage.getItem(KEY)||"null"); if(!o) return;
+  Object.entries(o).forEach(([id,v])=>{ const e=document.getElementById(id); if(!e) return;
+    if(e.classList.contains("seg")) e.querySelectorAll("button").forEach(b=>b.classList.toggle("on",b.dataset.v===v));
+    else if(e.type==="checkbox") e.checked=v; else e.value=v; });
+}catch(e){} }
+let _first=false; try{ _first=!localStorage.getItem(KEY); }catch(e){}
+load(); sync();
+function setSeg(id,v){ $$("#"+id+" button").forEach(b=>b.classList.toggle("on",b.dataset.v===v)); }
+function applyReference(){
+  [["intensity",1],["tone",1],["structure",1],["skin",0]].forEach(([k,v])=>$("#c-"+k).value=v);
+  $("#c-mask").checked=true; $("#o-nr").checked=true;
+  setSeg("o-color","linear"); setSeg("o-scale","1");
+  $("#o-passes").value="1"; $("#o-warm").value="12"; $("#o-maxpx").value="8294400";
+  sync(); save();
+}
+if(_first) applyReference();
+$("#btn-ref").onclick=()=>{ applyReference(); const b=$("#btn-ref"); b.textContent="Appliqué ✓"; setTimeout(()=>b.textContent="Appliquer",1500); };
+
+/* ---------- statut ---------- */
+async function refreshStatus(){
+  try{
+    const s=await (await fetch("/api/status")).json();
+    const dllOk=s.files.every(f=>f.found);
+    $("#st-engine").className="dot "+(s.engine_built?"ok":"bad");
+    $("#st-dll").className="dot "+(dllOk?"ok":"bad");
+    $("#st-ff").className="dot "+(s.ffmpeg?"ok":"warn");
+    const m=[];
+    if(!s.engine_built) m.push("Le moteur n'est pas encore compilé : fermez cette page et relancez <b>start.bat</b>.");
+    if(!dllOk) m.push("Fichiers DLSS 5 introuvables dans <code>"+esc(s.dll_dir)+"</code> : "+s.files.filter(f=>!f.found).map(f=>"<code>"+esc(f.file)+"</code>").join(", ")+". Modifiez le dossier dans Diagnostic.");
+    if(s.dlss_indicator) m.push("L'indicateur DLSS de NVIDIA est activé sur ce PC : il inscrirait du texte sur vos rendus. <button class='btn sm' id='ind-off'>Le désactiver</button>");
+    if(!s.ffmpeg) m.push("Les vidéos nécessitent ffmpeg : relancez <b>start.bat</b>, il l'installe automatiquement.");
+    $("#alert").innerHTML=m.map(x=>"<div>"+x+"</div>").join(""); $("#alert").classList.toggle("on",m.length>0);
+    const b=$("#ind-off"); if(b) b.onclick=async()=>{ b.textContent="Autorisation Windows…"; await post("/api/indicator-off"); refreshStatus(); };
+  }catch(e){ $("#alert").innerHTML="<div>Serveur arrêté : relancez start.bat.</div>"; $("#alert").classList.add("on"); }
+}
+
+/* ---------- import ---------- */
+const drop=$("#drop");
+drop.onclick=()=>$("#file").click();
+$("#file").onchange=e=>{ [...e.target.files].forEach(upload); e.target.value=""; };
+["dragenter","dragover"].forEach(t=>drop.addEventListener(t,e=>{e.preventDefault();drop.classList.add("over")}));
+["dragleave","drop"].forEach(t=>drop.addEventListener(t,e=>{e.preventDefault();drop.classList.remove("over")}));
+drop.addEventListener("drop",e=>[...e.dataTransfer.files].forEach(upload));
+function upload(f){
+  const it={name:f.name,kind:f.type.startsWith("video")?"video":"image",p:0,id:null,err:null}; pending.push(it); renderFiles();
+  const x=new XMLHttpRequest(); x.open("POST","/api/upload?name="+encodeURIComponent(f.name));
+  x.upload.onprogress=e=>{ if(e.lengthComputable){ it.p=e.loaded/e.total; renderFiles(); } };
+  x.onload=()=>{ let r={}; try{ r=JSON.parse(x.responseText) }catch(e){} if(r.error||!r.id) it.err=r.error||"échec"; else Object.assign(it,r); renderFiles(); };
+  x.onerror=()=>{ it.err="échec de l'envoi"; renderFiles(); };
+  x.send(f);
+}
+function renderFiles(){
+  $("#files").innerHTML=pending.map((p,i)=>`<div class="file"><span class="kind ${p.kind}">${p.kind==="video"?"vidéo":"image"}</span><span class="nm" title="${esc(p.name)}">${esc(p.name)}</span>
+   ${p.err?`<span style="color:var(--err);font-size:12px">${esc(p.err)}</span>`:p.id?`<span class="note">prêt</span>`:`<div class="bar" style="width:64px"><i style="width:${(p.p*100)|0}%"></i></div>`}
+   <button class="btn sm ghost" data-rm="${i}">✕</button></div>`).join("");
+  $$("[data-rm]").forEach(b=>b.onclick=()=>{ pending.splice(+b.dataset.rm,1); renderFiles(); });
+  const n=pending.filter(p=>p.id).length;
+  $("#btn-go").disabled=!n;
+  $("#btn-go").textContent=n>1?`Lancer le rendu DLSS 5 (${n} fichiers)`:"Lancer le rendu DLSS 5";
+  if(pending.some(p=>p.kind==="video")) $("#d-video").open=true;
+}
+$("#btn-go").onclick=async()=>{
+  const ready=pending.filter(p=>p.id); if(!ready.length) return;
+  const r=await post("/api/jobs",{ids:ready.map(p=>p.id),settings:settings()});
+  if(r.error){ alert(r.error); return; }
+  pending=pending.filter(p=>!p.id); renderFiles();
+  if(r[0]){ selected=r[0].id; viewKey=""; }
+  refreshJobs();
+};
+
+/* ---------- file de rendu ---------- */
+async function refreshJobs(){
+  try{ jobs=await (await fetch("/api/jobs")).json(); }catch(e){ return; }
+  if(!selected && jobs[0]) selected=jobs[0].id;
+  $("#queue").innerHTML=jobs.map(j=>{
+    const th=j.kind==="image"?`style="background-image:url('${j.output_url||j.input_url}')"`:"";
+    const st={queued:"En attente",running:j.stage,done:"Terminé"+(j.elapsed?` · ${j.elapsed} s`:""),error:j.stage,cancelled:j.stage}[j.status]||j.stage;
+    const busy=j.status==="running"||j.status==="queued";
+    return `<div class="qi ${j.status} ${j.id===selected?"sel":""}" data-id="${j.id}">
+      <div class="th" ${th}>${j.kind==="video"?"▶":""}</div>
+      <div class="in"><button class="x" data-act="${busy?"cancel":"delete"}" title="${busy?"Annuler":"Supprimer"}">✕</button>
+      <div class="nm">${esc(j.name)}</div><div class="st" title="${esc(st)}">${esc(st)}</div>
+      ${busy?`<div class="bar"><i style="width:${(j.progress*100).toFixed(1)}%"></i></div>`:""}</div></div>`;
+  }).join("") || `<div class="note">Vos rendus apparaîtront ici.</div>`;
+  $$(".qi").forEach(q=>{ q.onclick=e=>{ const a=e.target.dataset.act; if(a){ e.stopPropagation(); post(`/api/jobs/${q.dataset.id}/${a}`).then(()=>{ if(a==="delete"&&selected===q.dataset.id){selected=null;viewKey="";} refreshJobs(); }); return; } selected=q.dataset.id; viewKey=""; refreshJobs(); }; });
+  renderViewer();
+}
+
+function renderViewer(){
+  const j=jobs.find(x=>x.id===selected), stage=$("#stage");
+  $("#v-log").style.display=j?"":"none"; $("#v-open").style.display=j?"":"none";
+  const lb=$("#logbox"); lb.classList.toggle("on",!!j&&(showLog||j.status==="error"));
+  if(j){ const atBottom=lb.scrollTop+lb.clientHeight>=lb.scrollHeight-8; lb.textContent=(j.log||[]).join("\n")||"(journal vide)"; if(atBottom) lb.scrollTop=lb.scrollHeight; }
+  const nt=$("#notes"); nt.innerHTML=j&&j.notes&&j.notes.length?j.notes.map(esc).join("<br>"):""; nt.classList.toggle("on",!!(j&&j.notes&&j.notes.length));
+  if(j&&j.status==="running"){ const ov=stage.querySelector(".overlay"); if(ov){ ov.querySelector(".ring").style.setProperty("--p",(j.progress*100)+"%"); ov.querySelector(".ot").textContent=j.stage+" · "+Math.round(j.progress*100)+"%"; } }
+  const key=j?j.id+j.status+(j.output_url||""):"none";
+  if(key===viewKey) return; viewKey=key;
+  if(syncTimer){ clearInterval(syncTimer); syncTimer=null; }
+  $("#v-dl").style.display=j&&j.output_url?"":"none";
+  if(!j){ $("#v-title").textContent="Aperçu"; stage.innerHTML='<div class="empty"><div class="big">◐</div>Importez un fichier et lancez le rendu : la comparaison avant / après s\'affichera ici.</div>'; return; }
+  $("#v-title").textContent=j.name;
+  if(j.output_url) $("#v-dl").href=j.output_url.replace("/media/","/download/");
+  if(j.status!=="done"){
+    const bg=j.kind==="image"?`<img src="${j.input_url}" style="max-height:100%;max-width:100%;opacity:.35">`:"";
+    const msg=j.status==="error"?`<div style="color:var(--err);max-width:520px;text-align:center;padding:0 20px">${esc(j.stage)}</div><div class="note">Le journal ci-dessous indique la cause exacte.</div>`
+      :j.status==="cancelled"?`<div class="note">${esc(j.stage)}</div>`
+      :`<div class="ring"></div><div class="ot note">${esc(j.stage)}</div>`;
+    stage.innerHTML=bg+`<div class="overlay">${msg}</div>`; return;
+  }
+  if(j.kind==="image"){
+    stage.innerHTML=`<div class="cmp" id="cmp"><img src="${j.input_url}" alt=""><div class="after"><img src="${j.output_url}" alt=""></div><div class="hd"></div><span class="lbl l">Original</span><span class="lbl r">RealForge DLSS 5</span></div>`;
+    const c=$("#cmp"); let d=false;
+    const set=x=>{ const r=c.getBoundingClientRect(), p=Math.min(100,Math.max(0,(x-r.left)/r.width*100)); c.querySelector(".after").style.clipPath=`inset(0 0 0 ${p}%)`; c.querySelector(".hd").style.left=p+"%"; };
+    c.onpointerdown=e=>{ d=true; c.setPointerCapture(e.pointerId); set(e.clientX); };
+    c.onpointermove=e=>{ if(d) set(e.clientX); }; c.onpointerup=()=>d=false;
+  }else{
+    stage.innerHTML=`<div class="vids"><div><div class="cap">Original</div><video id="va" src="${j.compare_url||j.input_url}" muted playsinline></video></div><div><div class="cap" style="color:var(--g2)">RealForge DLSS 5</div><video id="vb" src="${j.output_url}" controls playsinline></video></div></div>`;
+    const a=$("#va"), b=$("#vb");
+    b.onplay=()=>{a.currentTime=b.currentTime;a.play()}; b.onpause=()=>a.pause(); b.onseeked=()=>a.currentTime=b.currentTime; b.onratechange=()=>a.playbackRate=b.playbackRate;
+    syncTimer=setInterval(()=>{ if(!b.paused&&Math.abs(a.currentTime-b.currentTime)>.08) a.currentTime=b.currentTime; },1000);
+  }
+}
+$("#v-log").onclick=()=>{ showLog=!showLog; renderViewer(); };
+$("#v-open").onclick=()=>selected&&post(`/api/jobs/${selected}/open`);
+$("#btn-work").onclick=()=>post("/api/open-work");
+
+/* ---------- diagnostic ---------- */
+$("#m-close").onclick=()=>$("#modal").classList.remove("on");
+$("#modal").onclick=e=>{ if(e.target.id==="modal") $("#modal").classList.remove("on"); };
+$("#btn-diag").onclick=async()=>{
+  $("#modal").classList.add("on"); $("#m-body").innerHTML='<p class="note">Vérification des fichiers et test de NVIDIA NGX…</p>';
+  const s=await (await fetch("/api/status")).json(), d=await post("/api/diagnose");
+  $("#m-body").innerHTML=`
+   <div class="row"><label>Dossier des fichiers DLSS 5</label><input type="text" id="dd" value="${esc(s.dll_dir)}" style="flex:2"><button class="btn sm" id="dd-save">Enregistrer</button></div>
+   <table class="ftab">${d.files.map(f=>`<tr><td><i class="dot ${f.ok?"ok":"bad"}" style="display:inline-block"></i></td><td><b>${esc(f.file)}</b><div class="note">${esc(f.desc)}</div></td><td class="p">${esc(f.src||f.note)}</td></tr>`).join("")}</table>
+   <h4 style="margin:14px 0 6px">Moteur</h4><pre class="code">${esc(d.engine.join("\n"))}</pre>
+   <h4 style="margin:14px 0 6px">ReShade.log (DLSS / NR)</h4><pre class="code">${esc(d.reshade.join("\n")||"(le journal apparaît après le premier rendu)")}</pre>`;
+  $("#dd-save").onclick=async()=>{ await post("/api/config",{dll_dir:$("#dd").value}); refreshStatus(); $("#btn-diag").click(); };
+};
+
+refreshStatus(); refreshJobs();
+setInterval(refreshJobs,1000); setInterval(refreshStatus,10000);
+</script>
+</body>
+</html>
